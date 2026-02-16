@@ -370,7 +370,7 @@ This is a test issue.`
 	}()
 
 	// Need to modify RunWithFile to use mocks - for now test basic validation
-	err = RunWithFile(tmpFile.Name(), "")
+	err = RunWithFile(tmpFile.Name(), "", "")
 	if err != nil && strings.Contains(err.Error(), "gh command failed") {
 		// This is expected since gh CLI not available, but parsing should have worked
 		t.Logf("Got expected gh command error: %v", err)
@@ -378,7 +378,7 @@ This is a test issue.`
 }
 
 func TestRunWithFileNonexistentFile(t *testing.T) {
-	err := RunWithFile("/nonexistent/file/path.md", "")
+	err := RunWithFile("/nonexistent/file/path.md", "", "")
 	if err == nil {
 		t.Errorf("RunWithFile() expected error for nonexistent file")
 	}
@@ -405,7 +405,7 @@ This issue has no title.`
 	}
 	tmpFile.Close()
 
-	err = RunWithFile(tmpFile.Name(), "")
+	err = RunWithFile(tmpFile.Name(), "", "")
 	if err == nil {
 		t.Errorf("RunWithFile() expected error for missing title")
 	}
@@ -473,6 +473,67 @@ func TestReadFileFromBranchInvalidBranch(t *testing.T) {
 		t.Errorf("readFileFromBranch() expected error for nonexistent branch")
 	}
 }
+
+func TestReadFileFromGistValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+		gistID   string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "gist ID with null byte",
+			fileName: "file.md",
+			gistID:   "gist\x00id",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "gist ID with newline",
+			fileName: "file.md",
+			gistID:   "gist\nid",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "gist ID with carriage return",
+			fileName: "file.md",
+			gistID:   "gist\rid",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "fileName with null byte",
+			fileName: "file\x00.md",
+			gistID:   "validgistid",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := readFileFromGist(tt.fileName, tt.gistID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readFileFromGist() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && !strings.Contains(err.Error(), tt.errMsg) {
+				t.Errorf("readFileFromGist() error = %v, want %q", err, tt.errMsg)
+			}
+		})
+	}
+}
+
+func TestReadFileFromGistInvalidGist(t *testing.T) {
+	// Test with a gist that doesn't exist
+	_, err := readFileFromGist("nonexistent.md", "nonexistent-gist-id")
+	if err == nil {
+		t.Errorf("readFileFromGist() expected error for nonexistent gist")
+	}
+}
+
 
 func TestIntegrationParseAndValidate(t *testing.T) {
 	// Test complete parsing and validation flow
