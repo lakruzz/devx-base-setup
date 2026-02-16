@@ -18,7 +18,7 @@
 CHECK_NAMES=("cspell" "markdownlint" "prettier")
 
 declare -A CHECK_COMMANDS=(
-    [cspell]="cspell ."
+    [cspell]="cspell"
     [markdownlint]="markdownlint-cli2"
     [prettier]="prettier --check \"**/*.{css,js,json,yml,yaml}\""
 )
