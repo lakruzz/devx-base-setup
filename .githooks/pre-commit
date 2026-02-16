@@ -21,7 +21,7 @@ declare -A CHECK_COMMANDS=(
     [cspell]="cspell"
     [markdownlint]="markdownlint-cli2"
     [prettier]="prettier --check \"**/*.{css,js,json,yml,yaml}\""
-    [][build]="make build" 
+    [build]="make build" 
 )
 
 ####################################################
