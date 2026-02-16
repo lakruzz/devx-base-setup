@@ -483,67 +483,53 @@ func TestReadFileFromGistValidation(t *testing.T) {
 		errMsg   string
 	}{
 		{
-			name:     "gist ID with null byte",
+			name:     "gist ID too short",
 			fileName: "file.md",
-			gistID:   "gist\x00id",
+			gistID:   "shortid",
 			wantErr:  true,
-			errMsg:   "prohibited characters",
+			errMsg:   "32-character hexadecimal",
 		},
 		{
-			name:     "gist ID with newline",
+			name:     "gist ID with uppercase",
 			fileName: "file.md",
-			gistID:   "gist\nid",
+			gistID:   "6EF8A9C46F65F5FEDB58E81B70DD90BA",
 			wantErr:  true,
-			errMsg:   "prohibited characters",
+			errMsg:   "32-character hexadecimal",
 		},
 		{
-			name:     "gist ID with carriage return",
+			name:     "gist ID with non-hex characters",
 			fileName: "file.md",
-			gistID:   "gist\rid",
+			gistID:   "6ef8a9c46f65f5fedb58e81b70dd90bg",
 			wantErr:  true,
-			errMsg:   "prohibited characters",
-		},
-		{
-			name:     "gist ID with semicolon",
-			fileName: "file.md",
-			gistID:   "gist;id",
-			wantErr:  true,
-			errMsg:   "prohibited characters",
-		},
-		{
-			name:     "gist ID with pipe",
-			fileName: "file.md",
-			gistID:   "gist|id",
-			wantErr:  true,
-			errMsg:   "prohibited characters",
-		},
-		{
-			name:     "fileName with null byte",
-			fileName: "file\x00.md",
-			gistID:   "validgistid",
-			wantErr:  true,
-			errMsg:   "prohibited characters",
+			errMsg:   "32-character hexadecimal",
 		},
 		{
 			name:     "fileName with path traversal",
 			fileName: "../file.md",
-			gistID:   "validgistid",
+			gistID:   "6ef8a9c46f65f5fedb58e81b70dd90ba",
 			wantErr:  true,
-			errMsg:   "path traversal not allowed",
+			errMsg:   "alphanumeric",
 		},
 		{
 			name:     "fileName with forward slash",
 			fileName: "path/file.md",
-			gistID:   "validgistid",
+			gistID:   "6ef8a9c46f65f5fedb58e81b70dd90ba",
 			wantErr:  true,
-			errMsg:   "path traversal not allowed",
+			errMsg:   "alphanumeric",
 		},
 		{
 			name:     "fileName with backslash",
 			fileName: "path\\file.md",
-			gistID:   "validgistid",
+			gistID:   "6ef8a9c46f65f5fedb58e81b70dd90ba",
 			wantErr:  true,
-			errMsg:   "path traversal not allowed",
+			errMsg:   "alphanumeric",
+		},
+		{
+			name:     "fileName with special characters",
+			fileName: "file$name.md",
+			gistID:   "6ef8a9c46f65f5fedb58e81b70dd90ba",
+			wantErr:  true,
+			errMsg:   "alphanumeric",
 		},
 	}
 
@@ -554,7 +540,7 @@ func TestReadFileFromGistValidation(t *testing.T) {
 				t.Errorf("readFileFromGist() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if err != nil && !strings.Contains(err.Error(), tt.errMsg) {
+			if err != nil && tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
 				t.Errorf("readFileFromGist() error = %v, want %q", err, tt.errMsg)
 			}
 		})
@@ -562,8 +548,8 @@ func TestReadFileFromGistValidation(t *testing.T) {
 }
 
 func TestReadFileFromGistInvalidGist(t *testing.T) {
-	// Test with a gist that doesn't exist
-	_, err := readFileFromGist("nonexistent.md", "nonexistent-gist-id")
+	// Test with a gist that doesn't exist - use valid format but nonexistent ID
+	_, err := readFileFromGist("nonexistent.md", "0000000000000000000000000000000a")
 	if err == nil {
 		t.Errorf("readFileFromGist() expected error for nonexistent gist")
 	}

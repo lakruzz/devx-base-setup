@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -119,17 +120,18 @@ func readFileFromBranch(filePath, branch string) ([]byte, error) {
 // readFileFromGist reads a file from a GitHub gist using the gh CLI.
 // It uses `gh gist view <gist-id> -f <filename> -r` to retrieve the file content.
 func readFileFromGist(fileName, gistID string) ([]byte, error) {
-	// Validate gist ID and file name to prevent command injection and path traversal
-	// Check for null bytes, newlines, and shell metacharacters
-	if strings.ContainsAny(gistID, "\x00\n\r;|`$&<>(){}[]!") {
-		return nil, fmt.Errorf("invalid gist ID: contains prohibited characters")
+	// Validate gist ID - GitHub gist IDs are hexadecimal strings (32 characters)
+	// Using a positive pattern for security and maintainability
+	gistIDPattern := regexp.MustCompile(`^[a-f0-9]{32}$`)
+	if !gistIDPattern.MatchString(gistID) {
+		return nil, fmt.Errorf("invalid gist ID: must be a 32-character hexadecimal string")
 	}
-	if strings.ContainsAny(fileName, "\x00\n\r;|`$&<>(){}[]!") {
-		return nil, fmt.Errorf("invalid file name: contains prohibited characters")
-	}
-	// Check for path traversal attempts
-	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
-		return nil, fmt.Errorf("invalid file name: path traversal not allowed")
+
+	// Validate file name - allow alphanumeric, dots, hyphens, underscores
+	// GitHub gists use flat file structure (no subdirectories), so reject path separators
+	fileNamePattern := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+	if !fileNamePattern.MatchString(fileName) {
+		return nil, fmt.Errorf("invalid file name: only alphanumeric characters, dots, hyphens, and underscores are allowed")
 	}
 
 	// Use gh gist view to read the file from the specified gist
