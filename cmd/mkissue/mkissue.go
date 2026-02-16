@@ -87,7 +87,17 @@ func RunWithFile(issueFile, branch string) error {
 // readFileFromBranch reads a file from a specific git branch without checking it out.
 // It uses `git show <branch>:<file>` to retrieve the file content.
 func readFileFromBranch(filePath, branch string) ([]byte, error) {
+	// Basic validation: ensure branch name doesn't contain null bytes or newlines
+	// which could cause issues with git commands
+	if strings.ContainsAny(branch, "\x00\n\r") {
+		return nil, fmt.Errorf("invalid branch name: contains prohibited characters")
+	}
+	if strings.ContainsAny(filePath, "\x00\n\r") {
+		return nil, fmt.Errorf("invalid file path: contains prohibited characters")
+	}
+
 	// Use git show to read the file from the specified branch
+	// Note: exec.Command passes arguments separately, not through shell, preventing injection
 	cmd := exec.Command("git", "show", fmt.Sprintf("%s:%s", branch, filePath))
 	output, err := cmd.Output()
 	if err != nil {
