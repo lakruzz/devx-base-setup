@@ -504,11 +504,46 @@ func TestReadFileFromGistValidation(t *testing.T) {
 			errMsg:   "prohibited characters",
 		},
 		{
+			name:     "gist ID with semicolon",
+			fileName: "file.md",
+			gistID:   "gist;id",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "gist ID with pipe",
+			fileName: "file.md",
+			gistID:   "gist|id",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
 			name:     "fileName with null byte",
 			fileName: "file\x00.md",
 			gistID:   "validgistid",
 			wantErr:  true,
 			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "fileName with path traversal",
+			fileName: "../file.md",
+			gistID:   "validgistid",
+			wantErr:  true,
+			errMsg:   "path traversal not allowed",
+		},
+		{
+			name:     "fileName with forward slash",
+			fileName: "path/file.md",
+			gistID:   "validgistid",
+			wantErr:  true,
+			errMsg:   "path traversal not allowed",
+		},
+		{
+			name:     "fileName with backslash",
+			fileName: "path\\file.md",
+			gistID:   "validgistid",
+			wantErr:  true,
+			errMsg:   "path traversal not allowed",
 		},
 	}
 
@@ -531,6 +566,10 @@ func TestReadFileFromGistInvalidGist(t *testing.T) {
 	_, err := readFileFromGist("nonexistent.md", "nonexistent-gist-id")
 	if err == nil {
 		t.Errorf("readFileFromGist() expected error for nonexistent gist")
+	}
+	// Verify the error message indicates it failed to read from gist
+	if err != nil && !strings.Contains(err.Error(), "failed to read file from gist") {
+		t.Errorf("readFileFromGist() error = %v, want error containing 'failed to read file from gist'", err)
 	}
 }
 

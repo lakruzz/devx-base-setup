@@ -119,12 +119,17 @@ func readFileFromBranch(filePath, branch string) ([]byte, error) {
 // readFileFromGist reads a file from a GitHub gist using the gh CLI.
 // It uses `gh gist view <gist-id> -f <filename> -r` to retrieve the file content.
 func readFileFromGist(fileName, gistID string) ([]byte, error) {
-	// Basic validation: ensure gist ID and file name don't contain problematic characters
-	if strings.ContainsAny(gistID, "\x00\n\r") {
+	// Validate gist ID and file name to prevent command injection and path traversal
+	// Check for null bytes, newlines, and shell metacharacters
+	if strings.ContainsAny(gistID, "\x00\n\r;|`$&<>(){}[]!") {
 		return nil, fmt.Errorf("invalid gist ID: contains prohibited characters")
 	}
-	if strings.ContainsAny(fileName, "\x00\n\r") {
+	if strings.ContainsAny(fileName, "\x00\n\r;|`$&<>(){}[]!") {
 		return nil, fmt.Errorf("invalid file name: contains prohibited characters")
+	}
+	// Check for path traversal attempts
+	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+		return nil, fmt.Errorf("invalid file name: path traversal not allowed")
 	}
 
 	// Use gh gist view to read the file from the specified gist
