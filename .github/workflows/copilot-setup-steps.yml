@@ -38,7 +38,7 @@ jobs:
           sh -s -- -b $(go env GOPATH)/bin latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      # Install Node.js for linters
+      # Install Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
