@@ -59,7 +59,6 @@ milestone: "v1.0"
 projects:
   - "Main Project"
 ---
-
 ## Issue Description
 
 This is the issue body written in Markdown.
@@ -69,7 +68,7 @@ This is the issue body written in Markdown.
 - And all other Markdown features
 ```
 
-See [`exercises/template.issue.md`](exercises/template.issue.md) for the complete specification and all supported fields.
+See [`specs/template.issue.md`](specs/template.issue.md) for the complete specification and all supported fields.
 
 ## Contributing
 

@@ -1,3 +1,5 @@
+<!-- cspell:ignore gofmt golangci  -->
+
 # Contributing to gh-utils
 
 Thank you for your interest in contributing to gh-utils! This document provides guidelines and information for developers.
@@ -12,6 +14,7 @@ For comprehensive development guidelines, please read the following RAG (Retriev
 - [`.github/instructions/go-standards.instructions.md`](.github/instructions/go-standards.instructions.md) - Detailed Go development standards
 
 These files contain essential information about:
+
 - Project structure and organization
 - Coding standards and conventions
 - Testing practices
@@ -28,22 +31,26 @@ These files contain essential information about:
 ## Getting Started
 
 1. **Fork and Clone**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/gh-utils.git
    cd gh-utils
    ```
 
 2. **Configure Git Hooks**
+
    ```bash
    git config core.hooksPath .githooks
    ```
 
 3. **Install Dependencies**
+
    ```bash
    make deps
    ```
 
 4. **Verify Setup**
+
    ```bash
    make build
    make test
@@ -53,6 +60,7 @@ These files contain essential information about:
 ## Development Workflow
 
 1. **Create a Feature Branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -63,28 +71,30 @@ These files contain essential information about:
    - Update documentation as needed
 
 3. **Test Your Changes**
+
    ```bash
    # Run tests
    make test
-   
+
    # Run tests with coverage
    make coverage
-   
+
    # Run linter
    make lint
-   
+
    # Format code
    make fmt
-   
+
    # Run static analysis
    make vet
    ```
 
 4. **Build and Verify**
+
    ```bash
    # Build for current platform
    make build
-   
+
    # Test the binary
    ./utils --help
    ```
@@ -140,6 +150,7 @@ This is the idiomatic Go approach and makes tests easy to find and maintain.
 - Aim for high coverage on business logic
 
 Example table-driven test:
+
 ```go
 func TestFunction(t *testing.T) {
     tests := []struct {
@@ -151,7 +162,7 @@ func TestFunction(t *testing.T) {
         {"valid input", "test", "result", false},
         {"error case", "", "", true},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             got, err := Function(tt.input)
@@ -184,6 +195,7 @@ make build-all
 ```
 
 Builds for:
+
 - Linux: amd64, arm64
 - Darwin (macOS): amd64, arm64
 - Windows: amd64, arm64
