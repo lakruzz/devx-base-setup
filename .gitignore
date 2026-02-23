@@ -40,3 +40,5 @@ example-issue.md
 
 ## gh-tt
 .tt_cache
+*.octoshift.log
+*.octoshift.verbose.log
