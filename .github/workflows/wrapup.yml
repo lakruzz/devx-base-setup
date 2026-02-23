@@ -1,0 +1,65 @@
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - "[0-9]*" # Isue branches
+      - "copilot/*" # Copilot running in Agentic mode pushes branches with this prefix as default
+
+concurrency:
+  group: "wrapup"
+  cancel-in-progress: false
+
+
+jobs:
+  setup-and-run-precommit:
+    name: Setup and run pre-commit
+    permissions:
+      contents: read
+      statuses: write
+    uses: ./.github/workflows/copilot-setup-steps.yml
+
+  build:
+    name: Build Go binaries for all platforms
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
+            ext: .exe
+          - os: windows
+            arch: arm64
+            ext: .exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.23'
+
+      - name: Build Go binary for ${{ matrix.os }}-${{ matrix.arch }}
+        uses: ./.github/actions/build-go-binaries
+        with:
+          binary-name: utils
+          os: ${{ matrix.os }}
+          arch: ${{ matrix.arch }}
+          ext: ${{ matrix.ext || '' }}
+          upload-artifact: false
+
+  
+  
+
+  

@@ -35,31 +35,24 @@ jobs:
           - os: windows
             arch: arm64
             ext: .exe
-
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
-      - uses: actions/setup-go@v6
+      - name: Setup Go
+        uses: actions/setup-go@v6
         with:
           go-version: '1.23'
 
-      - name: Build
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.arch }}
-        run: |
-          mkdir -p dist
-          go build -ldflags="-s -w" \
-            -o dist/utils-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} .
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Build Go binary for ${{ matrix.os }}-${{ matrix.arch }}
+        uses: ./.github/actions/build-go-binaries
         with:
-          name: utils-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/utils-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
-          retention-days: 1
+          binary-name: utils
+          os: ${{ matrix.os }}
+          arch: ${{ matrix.arch }}
+          ext: ${{ matrix.ext || '' }}
 
   release:
     needs: build
@@ -83,6 +76,17 @@ jobs:
           mkdir -p release
           find artifacts -type f -exec mv {} release/ \;
           ls -la release/
+
+      - name: Create release notes
+        id: release_notes
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh ext install devx-cafe/gh-tt
+          gh tt semver notes --filename release/release_notes.txt 
+          echo "Generating release notes..."
+          # Generate release notes using GitHub CLI
+          cat release/release_notes.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
