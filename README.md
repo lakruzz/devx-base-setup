@@ -9,7 +9,8 @@ A GitHub CLI extension providing utility commands for GitHub workflows and autom
 Install as a GitHub CLI extension:
 
 ```bash
-gh extension install lakruzz/gh-utils
+gh extension install lakruzz/gh-utils #Installs latest versions
+gh extension install lakruzz/gh-utils --pin 0.8.0 #Installs a specifi version
 ```
 
 ## Usage
