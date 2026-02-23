@@ -1,7 +1,6 @@
 name: Copilot Setup Steps
 
 on:
-  workflow_call:
   workflow_dispatch:
   push:
     paths:
