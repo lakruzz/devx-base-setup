@@ -12,16 +12,26 @@ concurrency:
 
 
 jobs:
-  setup-and-run-precommit:
-    name: Setup and run pre-commit
-    permissions:
-      contents: read
-      statuses: write
-    uses: ./.github/workflows/copilot-setup-steps.yml
+  prep-runner:
+    name: Prepare runner environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set up runner environment
+        uses: ./.github/actions/prep-runner 
+
+      - name: test precommit hook
+        run: ./.githooks/pre-commit  
+  
 
   build:
     name: Build Go binaries for all platforms
-    runs-on: ubuntu-latest
+      runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
