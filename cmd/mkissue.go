@@ -30,6 +30,7 @@ The markdown file should contain YAML frontmatter with metadata and a markdown b
 }
 
 func init() {
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true 
 	rootCmd.AddCommand(mkissueCmd)
 
 	// Define flags for mkissue command

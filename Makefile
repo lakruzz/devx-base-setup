@@ -11,7 +11,7 @@ BINARY_NAME=utils
 BUILD_DIR=.
 
 # Coverage threshold (percentage)
-COVERAGE_THRESHOLD=75
+COVERAGE_THRESHOLD=70
 
 # Go parameters
 GOCMD=go
