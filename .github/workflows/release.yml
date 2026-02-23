@@ -87,7 +87,7 @@ jobs:
           gh ext install devx-cafe/gh-tt
           mkdir -p .tmp
           gh tt semver note --to ${{ github.event.inputs.tag || github.ref_name }} --filename .tmp/RELEASENOTES.md
-          echo "Generating release notes..." §GITHUB_STEP_SUMMARY
+          echo "Generating release notes..."
           cat .tmp/RELEASENOTES.md >> $GITHUB_STEP_SUMMARY
 
       - name: Create Release

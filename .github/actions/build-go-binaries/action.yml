@@ -49,7 +49,7 @@ runs:
         go build -ldflags="-s -w" -o "$OUTPUT_FILE" .
         
         if [ $? -eq 0 ]; then
-          echo "✓ Built ${OUTPUT_FILE}" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Built ${OUTPUT_FILE}"
           ls -lh "$OUTPUT_FILE"
           
           # Set outputs
