@@ -83,16 +83,16 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           gh ext install devx-cafe/gh-tt
-          gh tt semver notes --filename release/release_notes.txt 
-          echo "Generating release notes..."
-          # Generate release notes using GitHub CLI
-          cat release/release_notes.txt >> $GITHUB_STEP_SUMMARY
+          gh tt semver note --to ${{ github.event.inputs.tag || github.ref_name }} --filename ./RELEASENOTES.md
+          echo "Generating release notes..." §GITHUB_STEP_SUMMARY
+          cat ./RELEASENOTES.md >> $GITHUB_STEP_SUMMARY
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: release/*
+          body_path: ./RELEASENOTES.md
           draft: false
           prerelease: false
         env:
