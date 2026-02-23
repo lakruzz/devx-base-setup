@@ -57,8 +57,7 @@ If `--branch` is not specified, the repository's default branch is used.
 
 #### Flag Rules
 
-```
-utils mkissue --file <file> [--branch <branch>] [--repo <owner/repo>]
+```text
 utils mkissue --file <file> [--gist <gist-id>]
 ```
 
