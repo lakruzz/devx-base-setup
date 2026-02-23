@@ -1,0 +1,16 @@
+{
+  "project": {
+    "owner": "lakruzz",
+    "number": "13"
+  },
+  "wrapup": {
+    "policies":{
+        "poll": false
+    }
+  },
+  "deliver": {
+    "policies": {
+        "poll": false
+    }
+  }
+}

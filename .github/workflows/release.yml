@@ -96,11 +96,15 @@ jobs:
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
           # Check if tag contains prerelease markers (- or +) after SemVer core
           # Lines 5-6 in trigger: [0-9]+.[0-9]+.[0-9]+* and [a-zA-Z]+[0-9]+.[0-9]+.[0-9]+*
-          if [[ $TAG =~ ^[a-zA-Z]*[0-9]+\.[0-9]+\.[0-9]+([-+]) ]]; then
+          if [[ $TAG =~ ^[a-zA-Z]*[0-9]+\.[0-9]+\.[0-9]+([-]) ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "is_draft=false" >> $GITHUB_OUTPUT
+            echo "Release type: PRERELEASE" 
+          elif [[ $TAG =~ ^[a-zA-Z]*[0-9]+\.[0-9]+\.[0-9]+([+]) ]]; then
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
             echo "is_draft=true" >> $GITHUB_OUTPUT
-            echo "Release type: PRERELEASE"
-          else
+            echo "Release type: DRAFT" 
+          else 
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
             echo "is_draft=false" >> $GITHUB_OUTPUT
             echo "Release type: STABLE"
@@ -114,5 +118,4 @@ jobs:
           body_path: .tmp/RELEASENOTES.md
           draft: ${{ steps.release_type.outputs.is_draft }}
           prerelease: ${{ steps.release_type.outputs.is_prerelease }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
