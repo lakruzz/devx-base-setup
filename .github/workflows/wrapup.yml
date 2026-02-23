@@ -1,3 +1,4 @@
+name: wrapup
 on:
   workflow_dispatch:
 
@@ -19,8 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Set up runner environment
         uses: ./.github/actions/prep-runner 
