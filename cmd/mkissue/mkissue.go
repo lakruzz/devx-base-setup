@@ -235,8 +235,48 @@ func parseIssueFile(content string) (*IssueMetadata, string, error) {
 func extractValue(line, prefix string) string {
 	value := strings.TrimPrefix(line, prefix)
 	value = strings.TrimSpace(value)
+	
+	// Strip inline comments (but preserve # inside quotes)
+	value = stripYAMLComment(value)
+	
 	value = strings.Trim(value, `"'`)
 	return value
+}
+
+// stripYAMLComment removes YAML comments from a value, preserving # inside quotes
+func stripYAMLComment(value string) string {
+	inSingleQuote := false
+	inDoubleQuote := false
+	var escaped bool
+	
+	for i, ch := range value {
+		if escaped {
+			escaped = false
+			continue
+		}
+		
+		if ch == '\\' {
+			escaped = true
+			continue
+		}
+		
+		if ch == '\'' && !inDoubleQuote {
+			inSingleQuote = !inSingleQuote
+			continue
+		}
+		
+		if ch == '"' && !inSingleQuote {
+			inDoubleQuote = !inDoubleQuote
+			continue
+		}
+		
+		// If we find # outside of quotes, strip from here onwards
+		if ch == '#' && !inSingleQuote && !inDoubleQuote {
+			return strings.TrimSpace(value[:i])
+		}
+	}
+	
+	return strings.TrimSpace(value)
 }
 
 func parseListField(lines []string, startIdx int, prefix string) ([]string, int) {
@@ -247,6 +287,9 @@ func parseListField(lines []string, startIdx int, prefix string) ([]string, int)
 	if strings.Contains(trimmed, "[") {
 		content := strings.TrimPrefix(trimmed, prefix)
 		content = strings.TrimSpace(content)
+		
+		// Strip comments before processing
+		content = stripYAMLComment(content)
 		content = strings.Trim(content, "[]")
 
 		var items []string
@@ -277,6 +320,10 @@ func parseListField(lines []string, startIdx int, prefix string) ([]string, int)
 		item := strings.TrimSpace(line)
 		item = strings.TrimPrefix(item, "-")
 		item = strings.TrimSpace(item)
+		
+		// Strip comments from list items
+		item = stripYAMLComment(item)
+		
 		item = strings.Trim(item, `"'@`)
 		if item != "" {
 			items = append(items, item)
