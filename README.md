@@ -37,6 +37,47 @@ gh utils mkissue -f path/to/issue.md -b secret
 
 This is useful for keeping issue templates in a separate orphan branch.
 
+#### Reading from a GitHub Repository
+
+You can read the issue file from a specific GitHub repository:
+
+```bash
+gh utils mkissue --file path/to/issue.md --repo owner/repo
+# or using short form
+gh utils mkissue -f path/to/issue.md -r owner/repo
+```
+
+Optionally combine with `--branch` to read from a specific branch in that repository:
+
+```bash
+gh utils mkissue --file path/to/issue.md --repo owner/repo --branch my-branch
+```
+
+If `--branch` is not specified, the repository's default branch is used.
+
+#### Flag Rules
+
+```text
+utils mkissue --file <file> [--gist <gist-id>]
+```
+
+- `--file` is always required
+- `--branch` is optional
+- `--gist` and `--repo` are mutually exclusive
+- `--branch` is not valid with `--gist`
+
+#### Reading from a GitHub Gist
+
+You can read the issue file from a GitHub Gist:
+
+```bash
+gh utils mkissue --file filename.md --gist <gist-id>
+# or using short form
+gh utils mkissue -f filename.md -g <gist-id>
+```
+
+The `--gist` flag accepts a 32-character hexadecimal gist ID.
+
 #### Issue File Format
 
 The issue file must follow the format specified in [`exercises/template.issue.md`](exercises/template.issue.md). This template defines the contract for issue files:

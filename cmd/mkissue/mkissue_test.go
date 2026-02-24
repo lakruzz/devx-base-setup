@@ -370,7 +370,7 @@ This is a test issue.`
 	}()
 
 	// Need to modify RunWithFile to use mocks - for now test basic validation
-	err = RunWithFile(tmpFile.Name(), "", "")
+	err = RunWithFile(tmpFile.Name(), "", "", "")
 	if err != nil && strings.Contains(err.Error(), "gh command failed") {
 		// This is expected since gh CLI not available, but parsing should have worked
 		t.Logf("Got expected gh command error: %v", err)
@@ -378,7 +378,7 @@ This is a test issue.`
 }
 
 func TestRunWithFileNonexistentFile(t *testing.T) {
-	err := RunWithFile("/nonexistent/file/path.md", "", "")
+	err := RunWithFile("/nonexistent/file/path.md", "", "", "")
 	if err == nil {
 		t.Errorf("RunWithFile() expected error for nonexistent file")
 	}
@@ -405,7 +405,7 @@ This issue has no title.`
 	}
 	tmpFile.Close()
 
-	err = RunWithFile(tmpFile.Name(), "", "")
+	err = RunWithFile(tmpFile.Name(), "", "", "")
 	if err == nil {
 		t.Errorf("RunWithFile() expected error for missing title")
 	}
@@ -971,5 +971,110 @@ func TestParseLabelsEdgeCases(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestReadFileFromRepoValidation(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		repo     string
+		branch   string
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name:     "invalid repo format - no slash",
+			filePath: "file.md",
+			repo:     "justarepo",
+			branch:   "",
+			wantErr:  true,
+			errMsg:   "invalid repository format",
+		},
+		{
+			name:     "invalid repo format - empty owner",
+			filePath: "file.md",
+			repo:     "/repo",
+			branch:   "",
+			wantErr:  true,
+			errMsg:   "invalid repository format",
+		},
+		{
+			name:     "invalid repo format - empty repo",
+			filePath: "file.md",
+			repo:     "owner/",
+			branch:   "",
+			wantErr:  true,
+			errMsg:   "invalid repository format",
+		},
+		{
+			name:     "filePath with null byte",
+			filePath: "file\x00.md",
+			repo:     "owner/repo",
+			branch:   "",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "filePath with newline",
+			filePath: "file\n.md",
+			repo:     "owner/repo",
+			branch:   "",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "branch with null byte",
+			filePath: "file.md",
+			repo:     "owner/repo",
+			branch:   "branch\x00name",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+		{
+			name:     "branch with newline",
+			filePath: "file.md",
+			repo:     "owner/repo",
+			branch:   "branch\nname",
+			wantErr:  true,
+			errMsg:   "prohibited characters",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := readFileFromRepo(tt.filePath, tt.repo, tt.branch)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readFileFromRepo() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
+				t.Errorf("readFileFromRepo() error = %v, want %q", err, tt.errMsg)
+			}
+		})
+	}
+}
+
+func TestReadFileFromRepoNonexistent(t *testing.T) {
+	// Test with a repo that doesn't exist - valid format but nonexistent
+	_, err := readFileFromRepo("nonexistent.md", "nonexistent-owner/nonexistent-repo", "")
+	if err == nil {
+		t.Errorf("readFileFromRepo() expected error for nonexistent repo")
+		return
+	}
+	if !strings.Contains(err.Error(), "failed to read file from repo") {
+		t.Errorf("readFileFromRepo() error = %v, want error containing 'failed to read file from repo'", err)
+	}
+}
+
+func TestRunWithFileRepo(t *testing.T) {
+	// Test that RunWithFile returns an error when the repo doesn't exist
+	err := RunWithFile("issue.md", "", "", "nonexistent-owner/nonexistent-repo")
+	if err == nil {
+		t.Errorf("RunWithFile() expected error for nonexistent repo")
+		return
+	}
+	if !strings.Contains(err.Error(), "failed to read file from repo") {
+		t.Errorf("RunWithFile() error = %v, want error containing 'failed to read file from repo'", err)
 	}
 }

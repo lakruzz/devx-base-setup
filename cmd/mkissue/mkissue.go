@@ -23,6 +23,8 @@ type Label struct {
 	Desc  string
 }
 
+var repoNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$`)
+
 func Run(args []string) {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Usage: utils mkissue <file.issue.md>")
@@ -30,7 +32,7 @@ func Run(args []string) {
 	}
 
 	issueFile := args[0]
-	if err := RunWithFile(issueFile, "", ""); err != nil {
+	if err := RunWithFile(issueFile, "", "", ""); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -40,7 +42,8 @@ func Run(args []string) {
 // This function is compatible with Cobra command error handling.
 // If branch is provided, the file will be read from that git branch.
 // If gist is provided, the file will be read from that gist.
-func RunWithFile(issueFile, branch, gist string) error {
+// If repo is provided (owner/repo format), the file will be read from that GitHub repository.
+func RunWithFile(issueFile, branch, gist, repo string) error {
 	var content []byte
 	var err error
 
@@ -49,6 +52,11 @@ func RunWithFile(issueFile, branch, gist string) error {
 		content, err = readFileFromGist(issueFile, gist)
 		if err != nil {
 			return fmt.Errorf("failed to read file from gist '%s': %w", gist, err)
+		}
+	} else if repo != "" {
+		content, err = readFileFromRepo(issueFile, repo, branch)
+		if err != nil {
+			return fmt.Errorf("failed to read file from repo '%s': %w", repo, err)
 		}
 	} else if branch != "" {
 		content, err = readFileFromBranch(issueFile, branch)
@@ -148,6 +156,45 @@ func readFileFromGist(fileName, gistID string) ([]byte, error) {
 	return output, nil
 }
 
+// readFileFromRepo reads a file from a GitHub repository using the gh CLI.
+// It uses `gh api repos/{owner}/{repo}/contents/{path}` with optional ref to retrieve the file content.
+// If branch is empty, the repository's default branch is used.
+func readFileFromRepo(filePath, repo, branch string) ([]byte, error) {
+	// Validate repo format: must be "owner/repo"
+	if !repoNamePattern.MatchString(repo) {
+		return nil, fmt.Errorf("invalid repository format: must be 'owner/repo'")
+	}
+
+	// Validate file path
+	if strings.ContainsAny(filePath, "\x00\n\r") {
+		return nil, fmt.Errorf("invalid file path: contains prohibited characters")
+	}
+
+	// Validate branch name if provided
+	if branch != "" && strings.ContainsAny(branch, "\x00\n\r") {
+		return nil, fmt.Errorf("invalid branch name: contains prohibited characters")
+	}
+
+	// Build the gh api command to fetch raw file content
+	endpoint := fmt.Sprintf("repos/%s/contents/%s", repo, filePath)
+	args := []string{"api", "-H", "Accept: application/vnd.github.raw", endpoint}
+
+	if branch != "" {
+		args = append(args, "-f", fmt.Sprintf("ref=%s", branch))
+	}
+
+	// Note: exec.Command passes arguments separately, not through shell, preventing injection
+	cmd := exec.Command("gh", args...)
+	output, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("failed to read file from repo: %s", string(exitErr.Stderr))
+		}
+		return nil, fmt.Errorf("failed to read file from repo: %w", err)
+	}
+	return output, nil
+}
+
 func parseIssueFile(content string) (*IssueMetadata, string, error) {
 	// Split by frontmatter delimiters
 	parts := strings.Split(content, "---")
@@ -188,8 +235,48 @@ func parseIssueFile(content string) (*IssueMetadata, string, error) {
 func extractValue(line, prefix string) string {
 	value := strings.TrimPrefix(line, prefix)
 	value = strings.TrimSpace(value)
+	
+	// Strip inline comments (but preserve # inside quotes)
+	value = stripYAMLComment(value)
+	
 	value = strings.Trim(value, `"'`)
 	return value
+}
+
+// stripYAMLComment removes YAML comments from a value, preserving # inside quotes
+func stripYAMLComment(value string) string {
+	inSingleQuote := false
+	inDoubleQuote := false
+	var escaped bool
+	
+	for i, ch := range value {
+		if escaped {
+			escaped = false
+			continue
+		}
+		
+		if ch == '\\' {
+			escaped = true
+			continue
+		}
+		
+		if ch == '\'' && !inDoubleQuote {
+			inSingleQuote = !inSingleQuote
+			continue
+		}
+		
+		if ch == '"' && !inSingleQuote {
+			inDoubleQuote = !inDoubleQuote
+			continue
+		}
+		
+		// If we find # outside of quotes, strip from here onwards
+		if ch == '#' && !inSingleQuote && !inDoubleQuote {
+			return strings.TrimSpace(value[:i])
+		}
+	}
+	
+	return strings.TrimSpace(value)
 }
 
 func parseListField(lines []string, startIdx int, prefix string) ([]string, int) {
@@ -200,6 +287,9 @@ func parseListField(lines []string, startIdx int, prefix string) ([]string, int)
 	if strings.Contains(trimmed, "[") {
 		content := strings.TrimPrefix(trimmed, prefix)
 		content = strings.TrimSpace(content)
+		
+		// Strip comments before processing
+		content = stripYAMLComment(content)
 		content = strings.Trim(content, "[]")
 
 		var items []string
@@ -230,6 +320,10 @@ func parseListField(lines []string, startIdx int, prefix string) ([]string, int)
 		item := strings.TrimSpace(line)
 		item = strings.TrimPrefix(item, "-")
 		item = strings.TrimSpace(item)
+		
+		// Strip comments from list items
+		item = stripYAMLComment(item)
+		
 		item = strings.Trim(item, `"'@`)
 		if item != "" {
 			items = append(items, item)
