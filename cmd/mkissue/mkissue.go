@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -175,9 +176,16 @@ func readFileFromRepo(filePath, repo, branch string) ([]byte, error) {
 		return nil, fmt.Errorf("invalid branch name: contains prohibited characters")
 	}
 
+	// Normalize file path to remove leading ./ and other path inconsistencies
+	// This ensures the GitHub API receives a proper path
+	cleanPath := filepath.Clean(filePath)
+	if strings.HasPrefix(cleanPath, "."+string(filepath.Separator)) {
+		cleanPath = cleanPath[2:]
+	}
+
 	// Build the gh api command to fetch raw file content
-	endpoint := fmt.Sprintf("repos/%s/contents/%s", repo, filePath)
-	args := []string{"api", "-H", "Accept: application/vnd.github.raw", endpoint}
+	endpoint := fmt.Sprintf("repos/%s/contents/%s", repo, cleanPath)
+	args := []string{"api", "-X", "GET", "-H", "Accept: application/vnd.github.raw", endpoint}
 
 	if branch != "" {
 		args = append(args, "-f", fmt.Sprintf("ref=%s", branch))
